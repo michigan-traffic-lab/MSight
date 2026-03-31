@@ -1,0 +1,9 @@
+[submodule "MSight_base"]
+	path = MSight_base
+	url = https://github.com/michigan-traffic-lab/MSight_base.git
+[submodule "MSight_Core"]
+	path = MSight_Core
+	url = https://github.com/michigan-traffic-lab/MSight_Core.git
+[submodule "MSight_Vision"]
+	path = MSight_Vision
+	url = https://github.com/michigan-traffic-lab/MSight_Vision.git

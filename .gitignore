@@ -1,0 +1,87 @@
+########################################
+# OS / Filesystem
+########################################
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+########################################
+# IDE / Editor
+########################################
+.vscode/
+.idea/
+*.iml
+
+########################################
+# Logs / Temp
+########################################
+*.log
+logs/
+tmp/
+temp/
+
+########################################
+# Environment / Secrets (CRITICAL)
+########################################
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.crt
+
+########################################
+# Python (if you add scripts/tools)
+########################################
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+
+########################################
+# Node (if you add web tools)
+########################################
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+########################################
+# Docker / Local runtime artifacts
+########################################
+.docker/
+*.pid
+*.sock
+
+########################################
+# Coverage / Testing
+########################################
+.coverage
+coverage/
+htmlcov/
+
+########################################
+# Misc
+########################################
+*.bak
+*.tmp
+*.cache
+
+########################################
+# Submodule-specific (IMPORTANT NOTES)
+########################################
+# DO NOT ignore submodule folders like:
+# MSight_base/
+# MSight_Core/
+# MSight_Vision/
+#
+# These are tracked as gitlinks and must remain visible.
+#
+# Also DO NOT ignore:
+# .gitmodules
+########################################
