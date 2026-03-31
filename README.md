@@ -34,7 +34,7 @@ This repository serves as the **entry point** ("front door") and integrates the 
 
 ## Core Modules
 
-### 🧱 [MSight_base](./MSight_base)
+### 🧱 [MSight_base](https://github.com/michigan-traffic-lab/MSight_base)
 
 Provides the **fundamental data abstractions and utilities** for MSight's digital infrastructure.
 
@@ -49,23 +49,22 @@ This layer defines the **canonical data schema** used across all MSight modules.
 
 ---
 
-### ⚙️ [MSight_Core](./MSight_Core)
+### ⚙️ [MSight_Core](https://github.com/michigan-traffic-lab/MSight_Core)
 
-Implements the **distributed system backbone** for real-world, scalable edge deployments.
+Implements the roadside **distributed system backbone** for real-world, scalable edge deployments.
 
 Key features:
 
-* Node-based execution framework
+* Bag of Nodes framework
 * High-performance pub/sub communication
 * Data serialization and transport
-* Pipeline orchestration
-* Edge–cloud integration support
+* Deployment tools for edge system
 
 This layer enables **low-latency, production-grade deployment** of MSight systems.
 
 ---
 
-### 🎥 [MSight_Vision](./MSight_Vision)
+### 🎥 [MSight_Vision](https://github.com/michigan-traffic-lab/MSight_Vision)
 
 Handles **2D sensor processing**, focusing on camera-based perception.
 
