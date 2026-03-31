@@ -98,13 +98,36 @@ This module will provide:
 
 ## Getting Started
 
-Clone the repository with submodules:
+### Install from PyPI
 
+Install modules based on your use case:
+
+1. Base package (required)
 ```bash
-git clone --recurse-submodules https://github.com/<your-org>/MSight.git
+pip install msight-base
 ```
 
-If you already cloned without submodules:
+2. Core runtime package (for deployment and edge workflows)
+```bash
+pip install msight-core
+```
+
+3. Vision package (for camera-based perception)
+```bash
+pip install msight-vision
+```
+
+LiDAR-based perception support will be available in the upcoming MSight Lidar module.
+
+### Clone the repository
+
+Clone with submodules:
+
+```bash
+git clone --recurse-submodules https://github.com/michigan-traffic-lab/MSight
+```
+
+If you already cloned the repository without submodules:
 
 ```bash
 git submodule update --init --recursive
