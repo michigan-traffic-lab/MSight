@@ -7,3 +7,6 @@
 [submodule "MSight_Vision"]
 	path = MSight_Vision
 	url = https://github.com/michigan-traffic-lab/MSight_Vision.git
+[submodule "MSight_Cloud"]
+	path = MSight_Cloud
+	url = https://github.com/michigan-traffic-lab/msight-cloud.git
