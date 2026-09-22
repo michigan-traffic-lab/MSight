@@ -30,28 +30,28 @@ MSight follows a modular, multi-repository architecture to support scalability, 
 
 This repository serves as the **entry point** ("front door") and integrates the core modules as submodules.
 
-The stack spans two tiers, each doing real computation, that meet at a well-defined seam:
+The stack spans three tiers, each doing real computation, that meet at well-defined seams:
 
 * **Roadside (edge)** — `MSight_base` defines the data, `MSight_Vision` / `MSight_Lidar` produce it, and `MSight_Core` runs the on-device processing graph and forwards results upstream.
-* **Cloud** — `MSight_Cloud` ingests those streams and *processes* them: decoding standard message formats, reassembling and filtering them, matching them against roadway geometry and live client positions, and turning them into events. It then serves the results — raw or derived — to mobile devices, connected vehicles, and applications, and hosts the microservices that implement application-specific logic.
+* **Cloud** — `MSight_Cloud` ingests those streams and *processes* them: decoding standard message formats, reassembling and filtering them, matching them against roadway geometry and live client positions, and turning them into events. It then serves the results — raw or derived — to applications, and hosts the microservices that implement application-specific logic.
+* **Client (device)** — `MSight_APP_Client_Library` is the other end of that connection. It runs on phones, in-vehicle head units, and tablets: it holds the link to the cloud, reports where the device is, and turns what arrives into typed events an application can render.
 
 ```
-   sensors                  roadside device                        cloud                        clients
-┌───────────┐      ┌─────────────────────────────┐      ┌───────────────────────────┐    ┌───────────────────┐
-│ cameras   │─────▶│ MSight_Vision ┐             │      │       MSight_Cloud        │    │ mobile devices    │
-│ LiDAR     │─────▶│ MSight_Lidar  ├─▶ fusion /  │      │                           │    │ connected vehicles│
-│ radar     │─────▶│               ┘   tracking  │      │ per-sensor pipeline:      │    │ in-vehicle apps   │
-│ signal    │──┐   │       (MSight_base objects) │      │  decode · reassemble ·    │    │ roadside displays │
-└───────────┘  │   │             │               │      │  filter · geo-match       │    │ integrators       │
-               │   │             ▼               │      │ user microservices        │    └───────────────────┘
-               │   │ MSight_Core (Bag of Nodes)  │      │ maps · SPaT · warnings    │              ▲
-               │   │ buffer · sort · aggregate   │      │ archival & query          │  raw streams │
-               │   │ serialize · cloud forward   │      │ WebSocket push            ├──────────────┘
-               │   └──────────────┬──────────────┘      │ admin console / MCP       │  derived events
-               │                  │                     └───────────────────────────┘
-               │                  │  real-time streams · aggregated uploads
-               └──────────────────┴──────────────▶ MSight_Cloud
-                   SPaT (SAE J2735)
+  cameras · LiDAR · radar · signal controller
+              │
+              ▼
+      roadside device                     cloud                        device
+  ┌──────────────────────┐      ┌───────────────────────┐      ┌─────────────────────┐
+  │ MSight_Vision        │      │     MSight_Cloud      │      │ MSight_APP_         │
+  │ MSight_Lidar         │      │                       │      │   Client_Library    │
+  │   ↓  fusion/tracking │      │ per-sensor pipeline:  │      │                     │
+  │ (MSight_base objects)│      │  decode · reassemble  │ push │ connect · reconnect │
+  │   ↓                  │ push │  filter · geo-match   ├─────▶│ report position     │
+  │ MSight_Core          ├─────▶│ user microservices    │      │ approach detection  │
+  │  buffer · aggregate  │      │ maps · SPaT · warnings│◀─────┤ typed event stream  │
+  │  serialize · forward │      │ archival · query      │ loc  └──────────┬──────────┘
+  └──────────────────────┘      │ admin console / MCP   │                 ▼
+                                └───────────────────────┘    Android · iOS · IVI · desktop
 ```
 
 ### How the pieces connect
@@ -61,6 +61,7 @@ The stack spans two tiers, each doing real computation, that meet at a well-defi
 * **`MSight_Cloud` continues the processing pipeline off the device.** Each roadside stream is registered as a logical *sensor* with its own ordered queue and its own dedicated, long-running consumer — so streams scale and fail independently, and each one can hold warm state. Those consumers do substantive work: decoding SAE J2735 payloads (SDSM, SPaT), reassembling fragmented transmissions into a single object list, suppressing updates that are not safety-significant, resolving intersection geometry, and matching detections against the live, geo-indexed positions of connected clients.
 * **`MSight_Cloud` provides the common functionality applications would otherwise each rebuild.** Client location registration with radius queries, intersection MAP lookup by position, real-time SPaT, radius-scoped notification, latency probing, and durable archival with query access are all first-class platform services rather than per-project code.
 * **Mobile devices are first-class clients, not just data sinks.** A phone or on-board unit registers its position and holds a WebSocket connection, then receives — at low latency and scoped to where it actually is — either raw sensor streams forwarded from the roadside or events the cloud derived from them, such as conflict warnings and current signal state.
+* **`MSight_APP_Client_Library` closes the loop on the device.** It is the only module that runs off-infrastructure, and it talks solely to `MSight_Cloud` over HTTPS — never to roadside devices. It holds the connection and reconnects through the dropouts a moving vehicle takes for granted, reports the position the cloud needs in order to scope pushes, and hands the application one typed event stream. It also does device-side processing of its own: matching position and heading against MAP lane geometry to work out which approach the driver is on, and resolving that against the latest SPaT into a plain answer — what colour is my light.
 * **Application logic runs in the cloud too.** `MSight_Cloud` can build and run containerized microservices straight from a GitHub repository, on managed compute it provisions and scales, so custom algorithms consuming sensor streams and emitting events are deployed into the platform rather than bolted alongside it.
 * **Operations run from the cloud.** The admin console and MCP server are where sensors are registered, streaming and archival settings are changed, microservices are deployed and rolled back, and fleet health, logs, and cost are inspected — the roadside modules are configured rather than individually administered.
 
@@ -135,6 +136,24 @@ This layer is the **cloud counterpart to `MSight_Core`**: the processing graph c
 
 ---
 
+### 📱 [MSight_APP_Client_Library](https://github.com/michigan-traffic-lab/MSight_APP_Client_Library)
+
+Provides the **client SDK for mobile and in-vehicle devices** — a Kotlin Multiplatform library that puts live roadside intelligence on the devices road users actually carry: a phone in a cup holder, an infotainment head unit, a tablet on a bus dashboard.
+
+Key features:
+
+* **Managed cloud connection** — discovers the WebSocket endpoint, reconnects with exponential backoff, and reports the device position that `MSight_Cloud` uses to scope what it pushes back
+* **Typed event stream** — one hot `SharedFlow` of one sealed event hierarchy: SDSM detections, routine and phase-change SPaT, warnings, and the device's own location. No WebSocket handler, J2735 parser, or reconnection loop to write
+* **On-device signal state** — flattens J2735 MAP lane geometry, infers which movements each signal group governs, matches position and heading to the approach the device is on, and resolves it against the latest SPaT into the answer a driver wants: *is my light red, yellow, or green?*
+* **Cooperative perception on a consumer device** — every vehicle and pedestrian a roadside sensor can see, including those occluded from the driver's own view
+* **Portable by construction** — all protocol handling, geometry, and state machines live in `commonMain`; a new platform needs only an HTTP/WebSocket engine and a location provider
+
+Android is supported and field-tested; JVM/desktop runs against a simulated location for smoke-testing a deployment; iOS and JS are architecturally ready but not yet implemented. The repository also ships a reference Android app ("MSight Shield") with a live map, signal overlay, and warning banners.
+
+This module is the **device-side counterpart to `MSight_Cloud`**, and the design goal is that an application should not have to understand transportation infrastructure to display it.
+
+---
+
 ### 🛰️ MSight_Lidar (🚧 Coming Soon)
 
 This module will provide:
@@ -149,7 +168,9 @@ This module will provide:
 
 ## Getting Started
 
-### Install from PyPI
+The roadside modules are Python packages, the cloud platform is deployed infrastructure, and the client library is a Kotlin Multiplatform module — each is set up differently.
+
+### Install the roadside modules from PyPI
 
 Install modules based on your use case:
 
@@ -181,6 +202,26 @@ npm run deploy
 ```
 
 This is optional for purely local or edge-only workflows — the roadside modules run standalone. See [`MSight_Cloud/README.md`](./MSight_Cloud/README.md) for prerequisites, configuration options, and the API reference.
+
+### Build a client application
+
+`MSight_APP_Client_Library` is a Gradle project, not a published artifact. Open the `MSight_APP_Client_Library/` submodule in Android Studio, or depend on its `shared` module from your own build:
+
+```kotlin
+dependencies {
+    implementation(project(":shared"))   // or include this repo as a Gradle composite build
+}
+```
+
+To check a deployment without a device, the JVM target runs the whole client against a simulated location:
+
+```bash
+MSIGHT_CLOUD_URL=https://your-deployment.example.com \
+MSIGHT_APP_ID=your-app MSIGHT_CLIENT_ID=desktop-test \
+./gradlew :shared:runJvmMain
+```
+
+A reachable `MSight_Cloud` deployment is required — you need its HTTP API URL, an `app_id` registered in its admin console, and a `client_id` of your choosing. See [`MSight_APP_Client_Library/README.md`](./MSight_APP_Client_Library/README.md) for the full API reference, platform support matrix, and the example Android app.
 
 ### Clone the repository
 

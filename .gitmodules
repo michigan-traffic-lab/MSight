@@ -10,3 +10,6 @@
 [submodule "MSight_Cloud"]
 	path = MSight_Cloud
 	url = https://github.com/michigan-traffic-lab/msight-cloud.git
+[submodule "MSight_APP_Client_Library"]
+	path = MSight_APP_Client_Library
+	url = https://github.com/michigan-traffic-lab/MSight_APP_Client_Library.git
